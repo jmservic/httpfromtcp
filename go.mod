@@ -1,4 +1,4 @@
-module httpfromtcp
+module github.com/jmservic/httpfromtcp
 
 go 1.25.1
 
