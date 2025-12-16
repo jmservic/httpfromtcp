@@ -29,14 +29,26 @@ func main() {
 		}
 		fmt.Println("A connection has been established.")
 		req, err := request.RequestFromReader(conn)
+		if err != nil {
+			fmt.Printf("Bad HTTP Request!: %s", err)
+			conn.Close()
+			continue
+		}
 		fmt.Println("Request line:")
 		fmt.Printf("- Method: %s\n", req.RequestLine.Method)
 		fmt.Printf("- Target: %s\n", req.RequestLine.RequestTarget)
 		fmt.Printf("- Version: %s\n", req.RequestLine.HttpVersion)
+		fmt.Println("Headers:")
+		for key, val := range req.Headers {
+			fmt.Printf("- %s: %s\n", key, val)
+		}
+		fmt.Println("Body:")
+		fmt.Printf("%s\n", req.Body)
 		//	ch := getLinesChannel(conn)
 		//	for line := range ch {
 		//		fmt.Println(line)
 		//	}
+		conn.Close()
 		fmt.Println("The connection has been closed.")
 	}
 }
