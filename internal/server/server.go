@@ -2,6 +2,9 @@ package server
 
 import (
 	"fmt"
+	"github.com/jmservic/httpfromtcp/internal/request"
+	"github.com/jmservic/httpfromtcp/internal/response"
+	"io"
 	"log"
 	"net"
 	"sync/atomic"
@@ -10,10 +13,23 @@ import (
 // Server is an HTTP 1.1 server
 type Server struct {
 	listener net.Listener
+	handler  Handler
 	closed   atomic.Bool
 }
 
-func Serve(port int) (*Server, error) {
+type Handler func(w *response.Writer, req *request.Request)
+
+type HandlerError struct {
+	StatusCode response.StatusCode
+	Message    string
+}
+
+func (h HandlerError) Write(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "HTTP/1.1 %d \r\n\r\n%s", h.StatusCode, h.Message)
+	return err
+}
+
+func Serve(port int, handler Handler) (*Server, error) {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	socket, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -22,6 +38,7 @@ func Serve(port int) (*Server, error) {
 
 	s := &Server{
 		listener: socket,
+		handler:  handler,
 	}
 	go s.listen()
 	return s, nil
@@ -48,9 +65,12 @@ func (s *Server) listen() {
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
-	_, err := conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!\n"))
+	req, err := request.RequestFromReader(conn)
 	if err != nil {
-		fmt.Printf("Error serving http request: %s", err)
+		response.WriteStatusLine(conn, response.StatusBadRequest)
 		return
 	}
+
+	writer := response.NewWriter(conn)
+	s.handler(writer, req)
 }

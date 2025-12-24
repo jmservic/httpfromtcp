@@ -61,9 +61,19 @@ func (h Headers) Set(key, value string) {
 	h[key] = value
 }
 
+func (h Headers) Replace(key, value string) {
+	key = strings.ToLower(key)
+	h[key] = value
+}
+
 func (h Headers) Get(key string) (string, bool) {
 	val, ok := h[strings.ToLower(key)]
 	return val, ok
+}
+
+func (h Headers) Delete(key string) {
+	key = strings.ToLower(key)
+	delete(h, key)
 }
 
 func invalidToken(r rune) bool {
